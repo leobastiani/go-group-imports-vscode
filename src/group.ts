@@ -1,11 +1,20 @@
 import { Range, WorkspaceEdit, window, workspace } from "vscode";
 import { getImports, getImportsRange, resolveRootPackage } from "./utils";
 
+type Strategy = {
+  priority: number;
+  includes: string;
+}
+
 export const goGroupImports = async () => {
+  const strategy = getStrategy();
+  if(!strategy) {
+    return
+  }
+
   const {
-    activeTextEditor: editor,
-    activeTextEditor: { document },
-  } = window;
+    document
+  } = window.activeTextEditor;
   const documentText = document.getText();
 
   if (document.languageId !== "go") return;
@@ -23,7 +32,7 @@ export const goGroupImports = async () => {
 
   if (!imports.length) return;
 
-  const groupedList = group(imports, rootPkg, getOrganizationPkgSetting());
+  const groupedList = group(imports, rootPkg, strategy);
   const importsRange = getImportsRange(documentText);
 
   const edit = new WorkspaceEdit();
@@ -38,58 +47,40 @@ export const goGroupImports = async () => {
   workspace.applyEdit(edit).then(document.save);
 };
 
-const getOrganizationPkgSetting = () => {
+const getStrategy = () => {
   return workspace
     .getConfiguration("groupImports")
-    .get("organizationPkg") as string;
-};
-
-type ImportGroups = {
-  stdlib: string[];
-  thirdParty: string[];
-  organization: string[];
-  own: string[];
-};
-
-const isStdlibImport = (imp: string): boolean => {
-  return !imp.includes(".");
-};
-
-const isImportFrom = (imp: string, root: string): boolean => {
-  return imp.includes(root);
+    .get("strategy") as Strategy[];
 };
 
 export const group = (
   imports: string[],
   rootPkg,
-  organizationPkg: string
-): ImportGroups => {
-  const importGroups = <ImportGroups>{
-    stdlib: [],
-    thirdParty: [],
-    organization: [],
-    own: [],
-  };
-
-  imports.forEach((imp) => {
-    if (organizationPkg != "" && isImportFrom(imp, organizationPkg)) {
-      importGroups.organization.push(imp);
-    } else if (isImportFrom(imp, rootPkg)) {
-      importGroups.own.push(imp);
-    } else if (isStdlibImport(imp)) {
-      importGroups.stdlib.push(imp);
-    } else if (organizationPkg != "" && isImportFrom(imp, organizationPkg)) {
-      importGroups.organization.push(imp);
-    } else {
-      importGroups.thirdParty.push(imp);
+  strategy: Strategy[]
+): string[][] => {
+  const ret: string[][] = []
+  for (const i of imports) {
+    let inside = i.match(/(["'])(?:(?=(\\?))\2.)*?\1/)?.[0]
+    if(!inside) {
+      continue
     }
-  });
-
-  return importGroups;
+    inside = inside.slice(1, inside.length -1)
+    for (const s of strategy) {
+      let includes: string | RegExp = s.includes
+      if(includes.startsWith('/') && includes.endsWith('/')) {
+        includes = new RegExp(includes.slice(1, includes.length - 1))
+      }
+      if(inside.match(includes)) {
+        ret[s.priority] = ret[s.priority] ?? []
+        ret[s.priority].push(i)
+        break
+      }
+    }
+  }
+  return ret.filter(Boolean);
 };
 
-const importGroupsToString = (importGroups: ImportGroups): string =>
-  Object.keys(importGroups)
-    .filter((key) => importGroups[key].length)
-    .map((key) => importGroups[key].join("\n"))
+const importGroupsToString = (importGroups: string[][]): string =>
+  importGroups
+    .map((i) => i.join("\n"))
     .join("\n\n");

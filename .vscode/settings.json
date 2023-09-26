@@ -6,4 +6,26 @@
     "search.exclude": {
         "out": true // set this to false to include "out" folder in search results
     },
+    "groupImports.strategy": [
+      {
+        "priority": 2,
+        "startsWith": "github.com/Gympass"
+      },
+      {
+        "priority": 3,
+        "startsWith": "github.com/gympass/wellz-be-hr-dashboard/pkg"
+      },
+      {
+        "priority": 4,
+        "startsWith": "github.com/gympass/wellz-be-hr-dashboard/internal"
+      },
+      {
+        "priority": 0,
+        "startsWith": "[^\\.]+"
+      },
+      {
+        "priority": 1,
+        "startsWith": ".*"
+      }
+    ],
 }

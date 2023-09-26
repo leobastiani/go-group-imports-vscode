@@ -33,12 +33,16 @@
       }
     ],
     "configuration": {
-      "title": "Group Imports configuration",
+      "title": "GoGroupImports",
       "properties": {
         "groupImports.onSave": {
           "type": "boolean",
           "default": true,
           "description": "Automatically group imports on save."
+        },
+        "groupImports.strategy": {
+          "type": "array",
+          "description": "Strategy to group"
         }
       }
     }
