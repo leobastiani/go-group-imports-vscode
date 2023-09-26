@@ -1,5 +1,5 @@
-import { Range, window, workspace, WorkspaceEdit, Position } from 'vscode';
-import { resolveRootPackage, getImportsRange, getImports } from './utils';
+import { Range, WorkspaceEdit, window, workspace } from "vscode";
+import { getImports, getImportsRange, resolveRootPackage } from "./utils";
 
 export const goGroupImports = async () => {
   const {
@@ -8,12 +8,12 @@ export const goGroupImports = async () => {
   } = window;
   const documentText = document.getText();
 
-  if (document.languageId !== 'go') return;
+  if (document.languageId !== "go") return;
 
   const rootPkg = await resolveRootPackage();
-  if (rootPkg === '') {
+  if (rootPkg === "") {
     window.showErrorMessage(
-      'Failed to resolve root project directory. No GOPATH variable or go.mod file found.'
+      "Failed to resolve root project directory. No GOPATH variable or go.mod file found."
     );
     return;
   }
@@ -24,7 +24,6 @@ export const goGroupImports = async () => {
   if (!imports.length) return;
 
   const groupedList = group(imports, rootPkg, getOrganizationPkgSetting());
-
   const importsRange = getImportsRange(documentText);
 
   const edit = new WorkspaceEdit();
@@ -39,11 +38,11 @@ export const goGroupImports = async () => {
   workspace.applyEdit(edit).then(document.save);
 };
 
-
 const getOrganizationPkgSetting = () => {
-  return (workspace.getConfiguration('groupImports').get('organizationPkg') as string);
-}
-
+  return workspace
+    .getConfiguration("groupImports")
+    .get("organizationPkg") as string;
+};
 
 type ImportGroups = {
   stdlib: string[];
@@ -53,14 +52,18 @@ type ImportGroups = {
 };
 
 const isStdlibImport = (imp: string): boolean => {
-  return !imp.includes('.');
+  return !imp.includes(".");
 };
 
 const isImportFrom = (imp: string, root: string): boolean => {
   return imp.includes(root);
 };
 
-export const group = (imports: string[], rootPkg, organizationPkg: string): ImportGroups => {
+export const group = (
+  imports: string[],
+  rootPkg,
+  organizationPkg: string
+): ImportGroups => {
   const importGroups = <ImportGroups>{
     stdlib: [],
     thirdParty: [],
@@ -69,7 +72,9 @@ export const group = (imports: string[], rootPkg, organizationPkg: string): Impo
   };
 
   imports.forEach((imp) => {
-    if (isImportFrom(imp, rootPkg)) {
+    if (organizationPkg != "" && isImportFrom(imp, organizationPkg)) {
+      importGroups.organization.push(imp);
+    } else if (isImportFrom(imp, rootPkg)) {
       importGroups.own.push(imp);
     } else if (isStdlibImport(imp)) {
       importGroups.stdlib.push(imp);
@@ -86,5 +91,5 @@ export const group = (imports: string[], rootPkg, organizationPkg: string): Impo
 const importGroupsToString = (importGroups: ImportGroups): string =>
   Object.keys(importGroups)
     .filter((key) => importGroups[key].length)
-    .map((key) => importGroups[key].join('\n'))
-    .join('\n\n');
+    .map((key) => importGroups[key].join("\n"))
+    .join("\n\n");
