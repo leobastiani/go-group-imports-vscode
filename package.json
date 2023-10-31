@@ -1,5 +1,5 @@
 {
-  "name": "go-group-imports",
+  "name": "go-group-imports-leobastiani",
   "displayName": "Go Group Imports",
   "description": "VSCode extension for separating imports in go files into three groups: stdlib, 3rdparty, own.",
   "version": "1.1.5",
