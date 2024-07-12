@@ -4,17 +4,19 @@ import { getImports, getImportsRange, resolveRootPackage } from "./utils";
 type Strategy = {
   priority: number;
   includes: string;
-}
+};
 
 export const goGroupImports = async () => {
   const strategy = getStrategy();
-  if(!strategy) {
-    return
+  if (!strategy || strategy.length === 0) {
+    return;
+  }
+  const excludeFn = getExcludeFn();
+  if (excludeFn(window.activeTextEditor.document.fileName)) {
+    return;
   }
 
-  const {
-    document
-  } = window.activeTextEditor;
+  const { document } = window.activeTextEditor;
   const documentText = document.getText();
 
   if (document.languageId !== "go") return;
@@ -53,27 +55,41 @@ const getStrategy = () => {
     .get("strategy") as Strategy[];
 };
 
+const getExcludeFn = () => {
+  const exclude = workspace
+    .getConfiguration("groupImports")
+    .get("exclude") as string[];
+  const fns = exclude.map((e) => {
+    if (e.startsWith("/") && e.endsWith("/")) {
+      const regex = new RegExp(e.slice(1, e.length - 1), "g");
+      return (str: string) => regex.test(str);
+    }
+    return (str: string) => e.includes(str);
+  });
+  return (str: string) => fns.some((fn) => !fn(str));
+};
+
 export const group = (
   imports: string[],
   rootPkg,
   strategy: Strategy[]
 ): string[][] => {
-  const ret: string[][] = []
+  const ret: string[][] = [];
   for (const i of imports) {
-    let inside = i.match(/(["'])(?:(?=(\\?))\2.)*?\1/)?.[0]
-    if(!inside) {
-      continue
+    let inside = i.match(/(["'])(?:(?=(\\?))\2.)*?\1/)?.[0];
+    if (!inside) {
+      continue;
     }
-    inside = inside.slice(1, inside.length -1)
+    inside = inside.slice(1, inside.length - 1);
     for (const s of strategy) {
-      let includes: string | RegExp = s.includes
-      if(includes.startsWith('/') && includes.endsWith('/')) {
-        includes = new RegExp(includes.slice(1, includes.length - 1))
+      let includes: string | RegExp = s.includes;
+      if (includes.startsWith("/") && includes.endsWith("/")) {
+        includes = new RegExp(includes.slice(1, includes.length - 1));
       }
-      if(inside.match(includes)) {
-        ret[s.priority] = ret[s.priority] ?? []
-        ret[s.priority].push(i)
-        break
+      if (inside.match(includes)) {
+        ret[s.priority] = ret[s.priority] ?? [];
+        ret[s.priority].push(i);
+        break;
       }
     }
   }
@@ -81,6 +97,4 @@ export const group = (
 };
 
 const importGroupsToString = (importGroups: string[][]): string =>
-  importGroups
-    .map((i) => i.join("\n"))
-    .join("\n\n");
+  importGroups.map((i) => i.join("\n")).join("\n\n");

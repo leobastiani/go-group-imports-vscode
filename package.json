@@ -43,6 +43,10 @@
         "groupImports.strategy": {
           "type": "array",
           "description": "Strategy to group"
+        },
+        "groupImports.exclude": {
+          "type": "array",
+          "description": "Exclude based on regex or string"
         }
       }
     }
@@ -55,8 +59,8 @@
     "test": "npm run compile && node ./node_modules/vscode/bin/test"
   },
   "devDependencies": {
-    "@types/node": "^7.0.43",
-    "typescript": "^3.1.2",
+    "@types/node": "^20.14.10",
+    "typescript": "^5.5.3",
     "vscode": "^1.1.21"
   },
   "repository": {
@@ -65,7 +69,7 @@
   },
   "homepage": "https://github.com/beerose/go-group-imports-vscode/blob/master/README.md",
   "dependencies": {
-    "@types/mocha": "^5.2.5",
-    "mocha": "^5.2.0"
+    "@types/mocha": "^10.0.7",
+    "mocha": "^10.6.0"
   }
 }
